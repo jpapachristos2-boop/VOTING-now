@@ -212,37 +212,110 @@ function nextVoter(){
   loadVoteScreen();
 }
 
-function showResults(){
+async function showResults(){
+
   showScreen('s-results');
-  const totals=SONGS.map((_,i)=>({idx:i,pts:voters.reduce((s,v)=>s+(allVotes[v]?.[i]||0),0)}));
-  totals.sort((a,b)=>b.pts-a.pts);
-  const medals=['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣'];
-  const cls=['gold','silver','bronze','','',''];
-  document.getElementById('results-sub').textContent=voters.length+' ψηφοφόροι · '+SONGS.length+' τραγούδια';
-  document.getElementById('results-list').innerHTML=totals.map((t,r)=>`
-    <div class="result-song ${cls[r]||''}">
-      <span class="medal">${medals[r]||''}</span>
-      <div class="result-info"><div class="result-title">${SONGS[t.idx].title}</div><div class="result-artist">${SONGS[t.idx].artist}</div></div>
-      <div style="text-align:right"><div class="result-pts">${t.pts}</div><div class="result-pts-lbl">πόντοι</div></div>
-    </div>`).join('');
+
+  const totals = SONGS.map((_,i)=>({
+    idx:i,
+    pts:voters.reduce((s,v)=>s+(allVotes[v]?.[i]||0),0)
+  }));
+
+  // Από το μικρότερο score -> μεγαλύτερο
+  totals.sort((a,b)=>a.pts-b.pts);
+
+  const medals=['6️⃣','5️⃣','4️⃣','🥉','🥈','🥇'];
+
+  const cls=['','','','bronze','silver','gold'];
+
+  document.getElementById('results-sub').textContent =
+    voters.length+' ψηφοφόροι · '+SONGS.length+' τραγούδια';
+
+  const resultsList =
+    document.getElementById('results-list');
+
+  resultsList.innerHTML='';
+
+  // ΣΤΑΔΙΑΚΗ ΕΜΦΑΝΙΣΗ
+  for(let r=0; r<totals.length; r++){
+
+    const t = totals[r];
+
+    const div = document.createElement('div');
+
+    div.className =
+      'result-song '+(cls[r]||'');
+
+    div.style.opacity='0';
+    div.style.transform='translateY(30px)';
+    div.style.transition='all .7s ease';
+
+    div.innerHTML = `
+      <span class="medal">
+        ${medals[r]||''}
+      </span>
+
+      <div class="result-info">
+        <div class="result-title">
+          ${SONGS[t.idx].title}
+        </div>
+
+        <div class="result-artist">
+          ${SONGS[t.idx].artist}
+        </div>
+      </div>
+
+      <div style="text-align:right">
+        <div class="result-pts">
+          ${t.pts}
+        </div>
+
+        <div class="result-pts-lbl">
+          πόντοι
+        </div>
+      </div>
+    `;
+
+    resultsList.appendChild(div);
+
+    // animation trigger
+    setTimeout(()=>{
+      div.style.opacity='1';
+      div.style.transform='translateY(0)';
+    },100);
+
+    // 2 sec delay ανά reveal
+    await new Promise(resolve =>
+      setTimeout(resolve,2000)
+    );
+  }
+
   let bd='';
+
   voters.forEach(v=>{
-    const sorted=Object.entries(allVotes[v]).sort((a,b)=>b[1]-a[1]);
-    bd+=`<div class="bd-voter"><div class="bd-name">${v}</div><div>${sorted.map(([i,p])=>`<span class="bd-tag">${p}pts → ${SONGS[i].title}</span>`).join('')}</div></div>`;
+
+    const sorted =
+      Object.entries(allVotes[v])
+      .sort((a,b)=>b[1]-a[1]);
+
+    bd += `
+      <div class="bd-voter">
+
+        <div class="bd-name">
+          ${v}
+        </div>
+
+        <div>
+          ${sorted.map(([i,p])=>
+            `<span class="bd-tag">
+              ${p}pts → ${SONGS[i].title}
+            </span>`
+          ).join('')}
+        </div>
+
+      </div>
+    `;
   });
+
   document.getElementById('breakdown').innerHTML=bd;
 }
-
-function showScreen(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-function resetAll(){
-  voters=[];currentVoter=0;allVotes={};curVotes={};usedPts=new Set();
-  ['v0','v1','v2','v3'].forEach(id=>document.getElementById(id).value='');
-  showScreen('s-setup');
-}
-</script>
-</body>
-</html>
